@@ -97,3 +97,8 @@ size_t Flow::getPacketNumber()
 {
 	return this->packetNumber;
 }
+
+size_t Flow::getRetransmissionTimes()
+{
+	return this->retrans_times;
+}

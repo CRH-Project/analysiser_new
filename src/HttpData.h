@@ -5,6 +5,10 @@
 #include <set>
 #include "headers.h"
 
+#define HTTPS 1
+#define HTTP 0
+#define VERSION HTTPS
+
 struct Pair 
 {
 	uint32_t ip = 0;
@@ -12,6 +16,12 @@ struct Pair
 	bool operator==(const Pair & r) const
 	{
 		return ip==r.ip && port==r.port;
+	}
+	bool operator<(const Pair & r) const
+	{
+		if(ip == r.ip)
+			return port<r.port;
+		return ip<r.ip;
 	}
 };
 
@@ -22,6 +32,13 @@ struct DoublePair
 	bool operator==(const DoublePair & r) const
 	{
 		return src==r.src && dst==r.dst;
+	}
+	bool operator<(const DoublePair &r) const
+	{
+		if(src==r.src)
+			return dst<r.dst;
+		return src<r.src;
+			
 	}
 };
 
@@ -73,6 +90,7 @@ class Flow
 		size_t getTotalSize();
 		size_t getPayloadSize();
 		size_t getPacketNumber();
+		size_t getRetransmissionTimes();
 };
 
 class Session
@@ -122,6 +140,8 @@ class Session
 		char getTcpState();
 		char getVersion();
 		Flow * getFlow(char direction);
+		std::pair<size_t, size_t> 
+			   getRetransmissionTimes();
 
 		double caculateRate(char direction);
 		double caculateThp(char direction);
@@ -137,6 +157,7 @@ class Session
 			if(p->src == this->src) return UPLOAD;
 			else return DOWNLOAD;
 		}
+		std::string printID();
 };
 
 

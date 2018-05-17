@@ -1,3 +1,6 @@
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "HttpData.h"
 #include "utils.h"
 
@@ -70,6 +73,13 @@ char Session::getVersion()
 	return this->state & MASK_VERSION;
 }
 
+std::pair<size_t,size_t> Session::getRetransmissionTimes()
+{
+	auto upt = this->upload.getRetransmissionTimes(),
+		 dwt = this->download.getRetransmissionTimes();
+	return {upt,dwt};
+}
+
 char Session::getTcpState()
 {
 	return this->state & MASK_TCP;
@@ -98,4 +108,15 @@ bool Session::isHalfClosed()
 	return endtime.tv_sec+endtime.tv_usec!=0;
 }
 
-
+std::string Session::printID()
+{
+	char buf[200];
+	struct in_addr s{htonl(src.ip)};
+	std::string ss(inet_ntoa(s));
+	struct in_addr d{htonl(dst.ip)};
+	char * sd = inet_ntoa(d);
+	sprintf(buf,"(%s:%d) -> (%s:%d)",
+			ss.c_str(),src.port,
+			sd,dst.port);
+	return std::string(buf);
+}

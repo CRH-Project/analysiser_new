@@ -2,19 +2,23 @@
 #include <iostream>
 #include <unordered_set>
 #include <unordered_map>
+#include <set>
+#include <map>
 #include "HttpData.h"
 #include "utils.h"
 
 
+#define TEST
 
-typedef std::unordered_map<DoublePair,Session> HashMap;
-typedef std::unordered_multimap<DoublePair,Session> HashMultiMap;
+
+typedef std::map<DoublePair,Session> HashMap;
+typedef std::multimap<DoublePair,Session> HashMultiMap;
 
 
 static size_t total,totalVERSION_CNT,total11,total10;
 static HashMap unfinished;
 static HashMultiMap finished;
-static std::unordered_set<DoublePair> st,notfoundst;
+static std::set<DoublePair> st,notfoundst;
 void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 {
 	total++;
@@ -35,8 +39,13 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 	uint32_t seq = ntohl(trans->seq), tot_len = ntohs(net->tot_len);
 	uint32_t payload_len = tot_len - net->ihl*4 - trans->doff*4;	
 	
+#if VERSION == HTTP
 	if(!ISHTTP(srcport) && !ISHTTP(dstport))
 		return;
+#elif VERSION == HTTPS
+	if(srcport!=443 && dstport!=443)
+		return;
+#endif
 
 	//TODO: initialize packet
 	Packet p;
@@ -89,6 +98,8 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 	{
 		auto & session = unfinished[dp];
 		session.addPacket(session.getDirection(&p),&p);
+
+#if VERSION == HTTP
 		std::string s;
 		for(int i=0;i<h->caplen;i++)
 		{
@@ -107,6 +118,7 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 			//		total);
 			total10++;
 		}
+#endif
 	}
 	//TODO: NORMAL PACKETS
 LVERSION_CNT:;
@@ -127,7 +139,6 @@ size_t flush()
 			total3++;
 		}
 	}
-	
 	
 	for(auto & ent : unfinished)
 	{
