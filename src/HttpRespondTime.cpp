@@ -1,4 +1,5 @@
 #include <iostream>
+#include <map>
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,8 +82,8 @@ class _Session : public Session
 		
 };
 
-typedef std::unordered_map<DoublePair,_Session> HashMap;
-typedef std::unordered_multimap<DoublePair,_Session> HashMultiMap;
+typedef std::map<DoublePair,_Session> HashMap;
+typedef std::multimap<DoublePair,_Session> HashMultiMap;
 
 static FILE * http10,*http11;
 static size_t total;
