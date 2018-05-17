@@ -70,6 +70,10 @@ class _Session : public Session
 			{
 				/* IGNORE */
 			}
+			/*for debug*/
+			if(this->getTimeGap() < 1e-3)
+			{
+			}
 		}
 
 		double getTimeGap()
@@ -78,6 +82,11 @@ class _Session : public Session
 			if(this->obj_end < this->obj_start) return 0;
 			struct timeval tt = this->obj_end - this->obj_start; 
 			return tt.tv_sec + tt.tv_usec/1000000.0;
+		}
+		 
+		size_t getObjCount()
+		{
+			return this->object_count;
 		}
 		
 };
@@ -103,14 +112,15 @@ void printToFile(_Session * session, void * arg)
 
 bool isRequest(const std::string & s, Packet *p)
 {
-	if(ISUSR(p->src.ip) && s.find("HTTP/")!=std::string::npos)
+	if(ISUSR(p->src.ip) && s.find("HTTP/")!=std::string::npos
+			&& s.find("GET")!=std::string::npos)
 		return true;
 	return false;
 }
 
 bool isRespond(const std::string & s, Packet * p)
 {
-	if(ISUSR(p->dst.ip) && s.find("HTTP/")!=std::string::npos)
+	if(ISUSR(p->dst.ip) && s.find("200 OK")!=std::string::npos )
 		return true;
 	return false;
 }	
@@ -203,7 +213,16 @@ void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * p
 		{
 			FILE * file = NULL;
 			if(session.getVersion() == Session::HTTP_11)
+			{
+				if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
+				{
+					fprintf(stderr,"Session : %s, object %zu\n",
+							session.printID().c_str(),
+							session.getObjCount());
+				}
+
 				file = http11;
+			}
 			else if (session.getVersion() == Session::HTTP_10)
 				file = http10;
 
