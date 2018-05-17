@@ -148,7 +148,7 @@ LABEL1:;
 		}
 	}
 
-	cout<<argv[1]<<","<<((double)successful)/((double)(sum))<<endl;
+	cerr<<argv[1]<<","<<((double)successful)/((double)(sum))<<endl;
 	
 
 #else
