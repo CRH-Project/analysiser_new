@@ -46,7 +46,8 @@ void judge_roller(u_char * u, const struct pcap_pkthdr * h, const u_char * pkt)
 	{
 		tag = h->ts.tv_sec;
 		curr = tag;
-		fprintf(stderr,"this trace (%s) starts at %zu\n", name.c_str(), tag);
+		fprintf(stderr,"this trace (%s) starts at %zu (%zu)\n", 
+				name.c_str(), tag, tag - 8*3600);
 	}
 	curr = h->ts.tv_sec;
 	if(curr - tag > INTERVAL)
@@ -73,7 +74,8 @@ void judge_roller(u_char * u, const struct pcap_pkthdr * h, const u_char * pkt)
 	if(check(srcip,dstip,srcport,dstport)) counter++;
 	if(counter>THRESHOLD)
 	{
-		fprintf(stdout,"%s starts at %zu\n", name.c_str(), h->ts.tv_sec);
+		fprintf(stdout,"%s starts at %zu (%zu)\n"
+				, name.c_str(), h->ts.tv_sec, h->ts.tv_sec - 8*3600);
 		st.clear();
 		exit(0);
 	}
