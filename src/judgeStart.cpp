@@ -25,7 +25,8 @@ static bool check(uint32_t si,uint32_t di, uint16_t sp, uint16_t dp)
 	if(ISUSR(di)) std::swap(f.first,f.second);
 	if(st.count(f)) return false;
 	auto _si = f.first.first, _di = f.second.first;
-	if(ISUSR(_si) && _di == 0xc0a80a01)
+	auto _dp = f.second.second;
+	if(ISUSR(_si) && _di == 0xc0a80a01 && ISHTTP(_dp))
 	{
 		st.insert(f);
 		return true;
@@ -45,10 +46,15 @@ void judge_roller(u_char * u, const struct pcap_pkthdr * h, const u_char * pkt)
 	{
 		tag = h->ts.tv_sec;
 		curr = tag;
+		fprintf(stderr,"this trace (%s) starts at %zu\n", name.c_str(), tag);
 	}
 	curr = h->ts.tv_sec;
 	if(curr - tag > INTERVAL)
+	{
 		counter = 0;
+		tag = h->ts.tv_sec;
+		curr = tag;
+	}
 	total++;
 	if(total % LOG_CNT == 0)
 		fprintf(stderr,"%zuk packets done ...\n", total*500/LOG_CNT);
