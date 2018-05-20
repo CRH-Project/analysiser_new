@@ -64,16 +64,19 @@ class _Session : public Session
 				obj_end = t;
 				obj_status = OK;
 				object_count += 1;
-				cbak(this,arg);
 			}
 			else
 			{
 				/* IGNORE */
 			}
 			/*for debug*/
-			if(this->getTimeGap() < 1e-3)
-			{
-			}
+		}
+
+		void getCorrectResponse(struct timeval t,
+				_SESS_CALL_BACK_T cbak, void * arg)
+		{
+			getResponse(t,cbak,arg);
+			cbak(this,arg);
 		}
 
 		double getTimeGap()
@@ -120,10 +123,17 @@ bool isRequest(const std::string & s, Packet *p)
 
 bool isRespond(const std::string & s, Packet * p)
 {
-	if(ISUSR(p->dst.ip) && s.find("200 OK")!=std::string::npos )
+	if(ISUSR(p->dst.ip))
 		return true;
 	return false;
 }	
+
+bool isCorrectRespond(const std::string &s, Packet *p)
+{
+	if(s.find("200 OK")!=std::string::npos)
+		return true;
+	else return false;
+}
 
 void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 {
@@ -214,19 +224,22 @@ void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * p
 			FILE * file = NULL;
 			if(session.getVersion() == Session::HTTP_11)
 			{
-				if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
-				{
-					fprintf(stderr,"Session : %s, object %zu\n",
-							session.printID().c_str(),
-							session.getObjCount());
-				}
-
 				file = http11;
 			}
 			else if (session.getVersion() == Session::HTTP_10)
 				file = http10;
 
 			session.getResponse(p.timestp,printToFile,(void *)file);
+			if(isCorrectRespond(s,&p))
+			{
+				if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
+				{
+					fprintf(stderr,"Session : %s, object %zu\n",
+							session.printID().c_str(),
+							session.getObjCount());
+				}
+				session.getCorrectResponse(p.timestp,printToFile,(void*)file);
+			}
 		}
 	}
 
