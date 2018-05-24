@@ -13,6 +13,7 @@ void Session::init(Pair & s, Pair & d)
 {
 	state = UNKNOWN_V | CLOSED;
 	src = s;dst = d;
+    this->type = "";
 }
 
 Flow * Session::getFlow(char direction)
@@ -119,4 +120,14 @@ std::string Session::printID()
 			ss.c_str(),src.port,
 			sd,dst.port);
 	return std::string(buf);
+}
+
+std::string Session::getType()
+{
+    return this->type;
+}
+
+void Session::setType(const std::string & s)
+{
+    this->type = s;
 }

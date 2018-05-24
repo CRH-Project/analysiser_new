@@ -7,7 +7,7 @@
 
 #define HTTPS 1
 #define HTTP 0
-#define VERSION HTTPS
+#define VERSION HTTP
 
 struct Pair 
 {
@@ -122,6 +122,7 @@ class Session
 		struct timeval endtime{0,0};
 		Flow upload;	/* src -> dst */
 		Flow download;	/* dst -> src */
+        std::string type = "";
 
 	private:
 		void init(Pair & s, Pair & d);
@@ -133,12 +134,14 @@ class Session
 		void fin(char direction, Packet * p);
 		void addPacket(char direction, Packet * p);
 		void setVersion(char version);
+        void setType(const std::string & s);
 		
 		/* getters */
 		size_t getPayloadSize();
 		size_t getTotalSize();
 		char getTcpState();
 		char getVersion();
+        std::string getType();
 		Flow * getFlow(char direction);
 		std::pair<size_t, size_t> 
 			   getRetransmissionTimes();
@@ -151,7 +154,7 @@ class Session
 		[[deprecated]]
 			bool isNewerHttp();
 	
-	public:
+    public:
 		char getDirection(Packet * p)
 		{
 			if(p->src == this->src) return UPLOAD;

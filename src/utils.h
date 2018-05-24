@@ -2,6 +2,7 @@
 #define _UTILS_HH_
 
 #ifdef __cplusplus
+#include <string>
 
 
 bool operator<(const struct timeval & l,
@@ -13,6 +14,7 @@ struct timeval operator-(const struct timeval & l,
 struct timeval operator*(const struct timeval & l,
 							const int r);
 
+void to_lower(std::string &s);
 
 extern "C"
 {

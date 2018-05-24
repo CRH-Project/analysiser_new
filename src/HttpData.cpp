@@ -114,6 +114,10 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 		else if(s.find("HTTP/1.0")!=std::string::npos)
 		{
 			session.setVersion(Session::HTTP_10);
+            char type_buf[100];
+            if(getField(type_buf, s.c_str(), "Content-Type: ")>=0)
+                fprintf(stderr,"got type %s\n",type_buf);
+
 			//fprintf(stderr,"got packet %ld contains segment \"HTTP/1.0\"\n",
 			//		total);
 			total10++;
@@ -131,14 +135,14 @@ size_t cnt[VERSION_CNT],pknum[VERSION_CNT],unfincnt[VERSION_CNT];
 size_t flush()
 {
 	size_t total3=0;
-	for(auto & ent : unfinished)
-	{
-		if(ent.second.isHalfClosed())
-		{
-			finished.insert(ent);
-			total3++;
-		}
-	}
+//	for(auto & ent : unfinished)
+//	{
+//		if(ent.second.isHalfClosed())
+//		{
+//			finished.insert(ent);
+//			total3++;
+//		}
+//	}
 	
 	for(auto & ent : unfinished)
 	{

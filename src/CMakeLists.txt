@@ -9,4 +9,7 @@ SET(CXX_SOURCES HttpData.cpp utils.cpp roll.cpp
 			judgeStart.cpp
 	)
 
+SET(C_SOURCES utils.c)
+
 ADD_LIBRARY(cxx_src_lib STATIC ${CXX_SOURCES} ${INCLUDES})
+ADD_LIBRARY(c_src_lib STATIC ${INCLUDES} ${C_SOURCES})

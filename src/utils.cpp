@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "utils.c"
+#include <algorithm>
 #include <stdexcept>
 
 
@@ -46,4 +47,9 @@ struct timeval operator*(const struct timeval & l, const int r)
 	return ans;
 }
 
-
+void to_lower(std::string &s)
+{
+    std::transform(s.begin(),s.end(),s.begin(),
+            [](unsigned char c){ return std::tolower(c); }
+            );
+}

@@ -108,18 +108,18 @@ LABEL1:;
 		auto ver = s.getVersion();
 		auto ind = version2ind[ver];
 		printSession(fouts[ind],s);
-		if(s.getFlow(Session::UPLOAD)->getTotalSize() == 0)
-		{
-			cout<<"Session : "<<s.printID()<<" -- NO_UPLOAD! "<<std::endl;
-		}
-		if(s.getFlow(Session::DOWNLOAD)->getTotalSize() == 0)
-		{
-			cout<<"Session : "<<s.printID()<<" -- NO DOWNLOAD! "<<std::endl;
-		}
-		auto rt = s.getRetransmissionTimes();
-		if(rt.first > 0 || rt.second > 0)
-		cerr<<"Session "<<s.printID()<<"'s retrans_times : UPLOAD "<<
-			rt.first<<", DOWNLOAD "<<rt.second<<endl;
+//		if(s.getFlow(Session::UPLOAD)->getTotalSize() == 0)
+//		{
+//			cout<<"Session : "<<s.printID()<<" -- NO_UPLOAD! "<<std::endl;
+//		}
+//		if(s.getFlow(Session::DOWNLOAD)->getTotalSize() == 0)
+//		{
+//			cout<<"Session : "<<s.printID()<<" -- NO DOWNLOAD! "<<std::endl;
+//		}
+//		auto rt = s.getRetransmissionTimes();
+//		if(rt.first > 0 || rt.second > 0)
+//		cerr<<"Session "<<s.printID()<<"'s retrans_times : UPLOAD "<<
+//			rt.first<<", DOWNLOAD "<<rt.second<<endl;
 	}
 	for(int i=0;i<4;i++)
 		fouts[i].close();

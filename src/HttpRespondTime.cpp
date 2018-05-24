@@ -8,7 +8,10 @@
 #include <unordered_map>
 #include "utils.h"
 #include "HttpData.h"
+#include <vector>
 
+std::vector<std::string> succCode{"200 OK","201 Created",
+                "206 Partial Content"};
 class _Session : public Session
 {
 	public:
@@ -97,7 +100,7 @@ class _Session : public Session
 typedef std::map<DoublePair,_Session> HashMap;
 typedef std::multimap<DoublePair,_Session> HashMultiMap;
 
-static FILE * http10,*http11;
+static FILE *fout;
 static size_t total;
 static HashMap unfinished;
 static HashMultiMap finished;
@@ -130,9 +133,25 @@ bool isRespond(const std::string & s, Packet * p)
 
 bool isCorrectRespond(const std::string &s, Packet *p)
 {
-	if(s.find("200 OK")!=std::string::npos)
-		return true;
-	else return false;
+     char buf[100];
+    if(getField(buf,s.c_str(),"Content-Type: ")>=0)
+    {
+        std::string type{buf};
+        to_lower(type);
+        if(type.find("audio")!=std::string::npos 
+                || type.find("video")!=std::string::npos)
+        {
+            return false;
+        }
+    }
+    for(auto ss : succCode)
+    {
+    	if(s.find(ss)!=std::string::npos)
+        {
+	    	return true;
+        }
+    }
+     return false;
 }
 
 void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
@@ -209,26 +228,19 @@ void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * p
 			if(pkt[i] == 0) s+=(char)1;
 			else s+=pkt[i];
 		}
-		if(s.find("HTTP/1.1")!=std::string::npos)
+		/*if(s.find("HTTP/1.1")!=std::string::npos)
 		{
 			session.setVersion(Session::HTTP_11);
 		}
 		else if(s.find("HTTP/1.0")!=std::string::npos)
 		{
 			session.setVersion(Session::HTTP_10);
-		}
+		}*/
 		if(isRequest(s,&p))
 			session.getRequest(p.timestp);
 		else if (isRespond(s,&p))
 		{
-			FILE * file = NULL;
-			if(session.getVersion() == Session::HTTP_11)
-			{
-				file = http11;
-			}
-			else if (session.getVersion() == Session::HTTP_10)
-				file = http10;
-
+			FILE * file = fout;
 			session.getResponse(p.timestp,printToFile,(void *)file);
 			if(isCorrectRespond(s,&p))
 			{
@@ -249,12 +261,16 @@ LVERSION_CNT:;
 
 int initRespondTimeGetter(const char * prefix)
 {
-	std::string s1(prefix),s2(prefix);
+/*	std::string s1(prefix),s2(prefix);
 	s1 += "-http1.0.txt";
 	s2 += "-http1.1.txt";
 	http10 = fopen(s1.c_str(),"w");
-	http11 = fopen(s2.c_str(),"w");
-	if(!http10 || !http11)
+	http11 = fopen(s2.c_str(),"w");*/
+
+    std::string s(prefix);
+    s+="-resTime.txt";
+    fout = fopen(s.c_str(),"w");
+    if(!fout)
 	{
 		fprintf(stderr,"error opening file:\n");
 		fprintf(stderr,"\t%s\n",strerror(errno));
@@ -264,9 +280,6 @@ int initRespondTimeGetter(const char * prefix)
 
 void endRespondTimeGetter()
 {
-	if(http10)
-		fclose(http10);
-	if(http11)
-		fclose(http11);
-
+    if(fout)
+        fclose(fout);
 }
