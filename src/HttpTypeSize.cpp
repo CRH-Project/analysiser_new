@@ -41,7 +41,6 @@ void httpTS_roller(u_char *user, const struct pcap_pkthdr *h, const u_char *pkt)
 	uint32_t seq = ntohl(trans->seq), tot_len = ntohs(net->tot_len);
 	uint32_t payload_len = tot_len - net->ihl*4 - trans->doff*4;	
     
-
 	if(!ISHTTP(srcport) && !ISHTTP(dstport))
 		return;
 
@@ -57,7 +56,7 @@ void httpTS_roller(u_char *user, const struct pcap_pkthdr *h, const u_char *pkt)
 	}
 
 	if(ISUSR(dstip)) std::swap(src,dst);
-    if(!ISUSR(srcip)) return;
+    if(!ISUSR(src.ip)) return;
 	DoublePair dp{src,dst};
 	if(trans->syn)
 	{
@@ -102,19 +101,19 @@ void httpTS_roller(u_char *user, const struct pcap_pkthdr *h, const u_char *pkt)
         char type_buf[100];
         if(getField(type_buf, s.c_str(), "Content-Type: ")>=0)
         {
-            std::string last_type {std::move(session.getType())};
+            std::string last_type {session.getType()};
             if(last_type.length()) 
                 type_size_map[last_type].push_back(session.currTypeSize);
             
-            if(last_type == "text" && session.currTypeSize < 700)
-                fprintf(stderr,"Got! PKT_ID = %ld, size = %ld\n", total, session.currTypeSize);
+            //if(last_type == "text" && session.currTypeSize < 700)
+            //    fprintf(stderr,"Got! PKT_ID = %ld, size = %ld\n", total, session.currTypeSize);
             session.currTypeSize = 0;
             std::string temp_type(type_buf);
             size_t temp_pos = temp_type.find("/");
             if(temp_pos!=std::string::npos)
                 session.setType(temp_type.substr(0, temp_pos));
             //fprintf(stderr,"got type %s\n",session.getType().c_str());
-            //
+            //std::cerr<<"type is: "<<temp_type<<std::endl;
         }
 
         session.currTypeSize += p.payload_len;

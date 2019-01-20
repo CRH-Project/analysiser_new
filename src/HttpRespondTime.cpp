@@ -12,7 +12,7 @@
 
 std::vector<std::string> succCode{"200 OK","201 Created",
                 "206 Partial Content"};
-std::map<std::string,int> acceptType{{1,"text"},{2,"application"},{3,"image"}};
+std::map<int, std::string> acceptType{{1,"text"},{2,"application"},{3,"image"}};
 class _Session : public Session
 {
 	public:
@@ -110,7 +110,7 @@ static HashMultiMap finished;
 
 void printToFile(_Session * session, void * arg)
 {
-	int tt = (int)arg;
+	ssize_t tt = (ssize_t)arg;
 	FILE * file = fout;
 	if(!file || !session)
 		return;
@@ -146,16 +146,16 @@ int isCorrectRespond(const std::string &s, Packet *p)
         {
             return false;
         }
-	for(auto &ent : acceptType)
-	{
-	    if(type.find(ent.second)!=std::string::npos) retVal = ent.first;
-	}
+        for(auto &ent : acceptType)
+        {
+            if(type.find(ent.second)!=std::string::npos) retVal = ent.first;
+        }
     }
     for(auto ss : succCode)
     {
-    	if(s.find(ss)!=std::string::npos)
+        if(s.find(ss)!=std::string::npos)
         {
-	    	return retVal;
+            return retVal;
         }
     }
     return false;
@@ -163,105 +163,105 @@ int isCorrectRespond(const std::string &s, Packet *p)
 
 void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 {
-	total++;
-	if(total % 100000 == 0) printf("%ldk packets done..\n",total/1000);
-	const struct Ethernet *link = (struct Ethernet *)pkt;
-	const struct Ipv4 *net = (struct Ipv4 *)(pkt + sizeof(struct Ethernet));
-	const struct Tcp *trans = (struct Tcp *)((u_char *)net + 4 * net->ihl);
-	const char *app = (char *)((u_char *)trans + 4 * trans->doff);
+    total++;
+    if(total % 100000 == 0) printf("%ldk packets done..\n",total/1000);
+    const struct Ethernet *link = (struct Ethernet *)pkt;
+    const struct Ipv4 *net = (struct Ipv4 *)(pkt + sizeof(struct Ethernet));
+    const struct Tcp *trans = (struct Tcp *)((u_char *)net + 4 * net->ihl);
+    const char *app = (char *)((u_char *)trans + 4 * trans->doff);
 
-	if(net->protocol != 6) return;
+    if(net->protocol != 6) return;
 
-	uint32_t srcip = ntohl(net->srcip), 
-			 dstip = ntohl(net->dstip);
-	uint16_t srcport = ntohs(trans->srcport),
-			 dstport = ntohs(trans->dstport);
-	Pair src{srcip,srcport},dst{dstip,dstport};
+    uint32_t srcip = ntohl(net->srcip), 
+             dstip = ntohl(net->dstip);
+    uint16_t srcport = ntohs(trans->srcport),
+             dstport = ntohs(trans->dstport);
+    Pair src{srcip,srcport},dst{dstip,dstport};
 
-	uint32_t seq = ntohl(trans->seq), tot_len = ntohs(net->tot_len);
-	uint32_t payload_len = tot_len - net->ihl*4 - trans->doff*4;	
-	
-	if(!ISHTTP(srcport) && !ISHTTP(dstport))
-		return;
+    uint32_t seq = ntohl(trans->seq), tot_len = ntohs(net->tot_len);
+    uint32_t payload_len = tot_len - net->ihl*4 - trans->doff*4;	
 
-	//TODO: initialize packet
-	Packet p;
-	{
-		p.src = src;
-		p.dst = dst;
-		p.seq = trans->seq;
-		p.header_len = tot_len - payload_len;
-		p.payload_len = payload_len;
-		p.timestp = h->ts;
-	}
+    if(!ISHTTP(srcport) && !ISHTTP(dstport))
+        return;
 
-	if(ISUSR(dstip)) std::swap(src,dst);
-	DoublePair dp{src,dst};
-	if(trans->syn)
-	{
-		if(unfinished.count(dp)==0)
-		{
-			_Session a(src,dst);
-			unfinished.insert(std::make_pair(dp,a));
-		}
-		auto & session = unfinished[dp];
-		session.syn(session.getDirection(&p), &p);
-		goto LVERSION_CNT;
-	}
+    //TODO: initialize packet
+    Packet p;
+    {
+        p.src = src;
+        p.dst = dst;
+        p.seq = trans->seq;
+        p.header_len = tot_len - payload_len;
+        p.payload_len = payload_len;
+        p.timestp = h->ts;
+    }
 
-	if(trans->fin || trans->rst)
-	{
-		if(unfinished.count(dp))
-		{
-			auto & session = unfinished[dp];
-			if(trans->rst) session.fin(3,&p);
-			else session.fin(session.getDirection(&p),&p);
-			if(session.getTcpState() == Session::CLOSED)
-			{
-				finished.insert(std::make_pair(dp,session));
-				unfinished.erase(unfinished.find(dp));
-			}
-		}
-		goto LVERSION_CNT;
-	}
-	
-	if(unfinished.count(dp))
-	{
-		auto & session = unfinished[dp];
-		session.addPacket(session.getDirection(&p),&p);
-		std::string s;
-		for(int i=0;i<h->caplen;i++)
-		{
-			if(pkt[i] == 0) s+=(char)1;
-			else s+=pkt[i];
-		}
-		/*if(s.find("HTTP/1.1")!=std::string::npos)
-		{
-			session.setVersion(Session::HTTP_11);
-		}
-		else if(s.find("HTTP/1.0")!=std::string::npos)
-		{
-			session.setVersion(Session::HTTP_10);
-		}*/
-		if(isRequest(s,&p))
-			session.getRequest(p.timestp);
-		else if (isRespond(s,&p))
-		{
-			FILE * file = fout;
-			session.getResponse(p.timestp,printToFile,(void *)file);
-			int tt;
-			if((tt=isCorrectRespond(s,&p)))
-			{
-				if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
-				{
-					fprintf(stderr,"Session : %s, object %zu\n",
-							session.printID().c_str(),
-							session.getObjCount());
-				}
-				session.getCorrectResponse(p.timestp,printToFile,(void*)tt);
-			}
-		}
-	}
+    if(ISUSR(dstip)) std::swap(src,dst);
+    DoublePair dp{src,dst};
+    if(trans->syn)
+    {
+        if(unfinished.count(dp)==0)
+        {
+            _Session a(src,dst);
+            unfinished.insert(std::make_pair(dp,a));
+        }
+        auto & session = unfinished[dp];
+        session.syn(session.getDirection(&p), &p);
+        goto LVERSION_CNT;
+    }
+
+    if(trans->fin || trans->rst)
+    {
+        if(unfinished.count(dp))
+        {
+            auto & session = unfinished[dp];
+            if(trans->rst) session.fin(3,&p);
+            else session.fin(session.getDirection(&p),&p);
+            if(session.getTcpState() == Session::CLOSED)
+            {
+                finished.insert(std::make_pair(dp,session));
+                unfinished.erase(unfinished.find(dp));
+            }
+        }
+        goto LVERSION_CNT;
+    }
+
+    if(unfinished.count(dp))
+    {
+        auto & session = unfinished[dp];
+        session.addPacket(session.getDirection(&p),&p);
+        std::string s;
+        for(int i=0;i<h->caplen;i++)
+        {
+            if(pkt[i] == 0) s+=(char)1;
+            else s+=pkt[i];
+        }
+        /*if(s.find("HTTP/1.1")!=std::string::npos)
+          {
+          session.setVersion(Session::HTTP_11);
+          }
+          else if(s.find("HTTP/1.0")!=std::string::npos)
+          {
+          session.setVersion(Session::HTTP_10);
+          }*/
+        if(isRequest(s,&p))
+            session.getRequest(p.timestp);
+        else if (isRespond(s,&p))
+        {
+            FILE * file = fout;
+            session.getResponse(p.timestp,printToFile,(void *)file);
+            int tt;
+            if((tt=isCorrectRespond(s,&p)))
+            {
+                if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
+                {
+                    fprintf(stderr,"Session : %s, object %zu\n",
+                            session.printID().c_str(),
+                            session.getObjCount());
+                }
+                session.getCorrectResponse(p.timestp,printToFile,(void*)tt);
+            }
+        }
+    }
 
 LVERSION_CNT:;
 
@@ -269,21 +269,21 @@ LVERSION_CNT:;
 
 int initRespondTimeGetter(const char * prefix)
 {
-/*	std::string s1(prefix),s2(prefix);
-	s1 += "-http1.0.txt";
-	s2 += "-http1.1.txt";
-	http10 = fopen(s1.c_str(),"w");
-	http11 = fopen(s2.c_str(),"w");*/
+    /*	std::string s1(prefix),s2(prefix);
+        s1 += "-http1.0.txt";
+        s2 += "-http1.1.txt";
+        http10 = fopen(s1.c_str(),"w");
+        http11 = fopen(s2.c_str(),"w");*/
 
     std::string s(prefix);
     s+="-resTime.txt";
     fout = fopen(s.c_str(),"w");
     if(!fout)
-	{
-		fprintf(stderr,"error opening file:\n");
-		fprintf(stderr,"\t%s\n",strerror(errno));
-		return -1;
-	}
+    {
+        fprintf(stderr,"error opening file:\n");
+        fprintf(stderr,"\t%s\n",strerror(errno));
+        return -1;
+    }
 }
 
 void endRespondTimeGetter()
