@@ -9,6 +9,8 @@
 #define HTTP 0
 #define VERSION HTTP
 
+#define CALC_TYPE_SIZE
+
 struct Pair 
 {
 	uint32_t ip = 0;
@@ -130,11 +132,11 @@ class Session
 		Session()=default;
 		Session(Pair & s, Pair & d);
 		/* setters */
-		void syn(char direction, Packet * p);
-		void fin(char direction, Packet * p);
-		void addPacket(char direction, Packet * p);
+		virtual void syn(char direction, Packet * p);
+		virtual void fin(char direction, Packet * p);
+		virtual void addPacket(char direction, Packet * p);
 		void setVersion(char version);
-        void setType(const std::string & s);
+        virtual void setType(const std::string & s);
 		
 		/* getters */
 		size_t getPayloadSize();
@@ -174,6 +176,7 @@ void http_roller(u_char * user, const struct pcap_pkthdr * h, const u_char * pkt
 
 void tempPrint();
 void getFinishedSessions(std::vector<Session> & v);
+size_t getSizeOfGivenType(const std::string &type);
 
 
 int initRespondTimeGetter(const char * prefix);

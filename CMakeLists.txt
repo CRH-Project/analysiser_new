@@ -21,8 +21,9 @@ ADD_EXECUTABLE(http_gap http_gap.cpp)
 TARGET_LINK_LIBRARIES(http_gap cxx_src_lib c_src_lib ${PCAP} )
 ADD_EXECUTABLE(judge judge_start.cpp)
 TARGET_LINK_LIBRARIES(judge cxx_src_lib ${PCAP})
-
+ADD_EXECUTABLE(http_type_size httpTypeSize.cpp)
+TARGET_LINK_LIBRARIES(http_type_size cxx_src_lib ${PCAP})
 
 INSTALL(TARGETS 
-			http http_gap judge
+            http http_gap judge http_type_size
 		DESTINATION bin)

@@ -2,11 +2,11 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(Analysiser-src)
 
 SET(INCLUDES headers.h roll.h HttpData.h
-			 utils.h judgeStart.h
+    utils.h judgeStart.h HttpTypeSize.h
 	)
 SET(CXX_SOURCES HttpData.cpp utils.cpp roll.cpp
 			Flow.cpp Session.cpp HttpRespondTime.cpp
-			judgeStart.cpp
+            judgeStart.cpp HttpTypeSize.cpp
 	)
 
 SET(C_SOURCES utils.c)

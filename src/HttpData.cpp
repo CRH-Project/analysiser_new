@@ -18,6 +18,7 @@ typedef std::multimap<DoublePair,Session> HashMultiMap;
 static size_t total,totalVERSION_CNT,total11,total10;
 static HashMap unfinished;
 static HashMultiMap finished;
+static std::map<std::string, size_t> size_map;
 static std::set<DoublePair> st,notfoundst;
 void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 {
@@ -99,6 +100,11 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 		auto & session = unfinished[dp];
 		session.addPacket(session.getDirection(&p),&p);
 
+#ifdef CALC_TYPE_SIZE
+        std::string type { std::move(session.getType()) };
+        size_map[type] += p.payload_len;
+#endif
+
 #if VERSION == HTTP
 		std::string s;
 		for(int i=0;i<h->caplen;i++)
@@ -114,17 +120,24 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
 		else if(s.find("HTTP/1.0")!=std::string::npos)
 		{
 			session.setVersion(Session::HTTP_10);
-            char type_buf[100];
-            if(getField(type_buf, s.c_str(), "Content-Type: ")>=0)
-                fprintf(stderr,"got type %s\n",type_buf);
-
-			//fprintf(stderr,"got packet %ld contains segment \"HTTP/1.0\"\n",
-			//		total);
 			total10++;
-		}
+        }
+
+#ifdef CALC_TYPE_SIZE
+        char type_buf[100];
+        if(getField(type_buf, s.c_str(), "Content-Type: ")>=0)
+        {
+            std::string temp_type(type_buf);
+            int temp_pos = temp_type.find("/");
+            if(temp_pos!=std::string::npos)
+                session.setType(temp_type.substr(0, temp_pos));
+            fprintf(stderr,"got type %s\n",session.getType().c_str());
+        }
 #endif
-	}
-	//TODO: NORMAL PACKETS
+
+#endif
+    }
+    //TODO: NORMAL PACKETS
 LVERSION_CNT:;
 
 }
@@ -134,60 +147,66 @@ double thp[VERSION_CNT],dura[VERSION_CNT],payld[VERSION_CNT];
 size_t cnt[VERSION_CNT],pknum[VERSION_CNT],unfincnt[VERSION_CNT];
 size_t flush()
 {
-	size_t total3=0;
-//	for(auto & ent : unfinished)
-//	{
-//		if(ent.second.isHalfClosed())
-//		{
-//			finished.insert(ent);
-//			total3++;
-//		}
-//	}
-	
-	for(auto & ent : unfinished)
-	{
-		auto & s = ent.second;
-		int ind = (s.getVersion()>>2);
-		++unfincnt[ind];
-	}
-	for(auto & ent : finished)
-	{
-		auto & s = ent.second;	
-		int ind = (s.getVersion()>>2);
-		++cnt[ind];
-		thp[ind]+=s.caculateThp(Session::DOWNLOAD);
-		dura[ind]+=s.caculateDuration();
-		payld[ind]+=s.getFlow(Session::DOWNLOAD)->getPayloadSize();
-		pknum[ind]+=s.getFlow(Session::DOWNLOAD)->getPacketNumber();
-	}
-	for(int ind = 0;ind<VERSION_CNT;ind++)
-	{
-		thp[ind]/=cnt[ind];dura[ind]/=cnt[ind];payld[ind]/=cnt[ind];
-	}
-	return total3;
+    size_t total3=0;
+    //	for(auto & ent : unfinished)
+    //	{
+    //		if(ent.second.isHalfClosed())
+    //		{
+    //			finished.insert(ent);
+    //			total3++;
+    //		}
+    //	}
+
+    for(auto & ent : unfinished)
+    {
+        auto & s = ent.second;
+        int ind = (s.getVersion()>>2);
+        ++unfincnt[ind];
+    }
+    for(auto & ent : finished)
+    {
+        auto & s = ent.second;	
+        int ind = (s.getVersion()>>2);
+        ++cnt[ind];
+        thp[ind]+=s.caculateThp(Session::DOWNLOAD);
+        dura[ind]+=s.caculateDuration();
+        payld[ind]+=s.getFlow(Session::DOWNLOAD)->getPayloadSize();
+        pknum[ind]+=s.getFlow(Session::DOWNLOAD)->getPacketNumber();
+    }
+    for(int ind = 0;ind<VERSION_CNT;ind++)
+    {
+        thp[ind]/=cnt[ind];dura[ind]/=cnt[ind];payld[ind]/=cnt[ind];
+    }
+    return total3;
 }
 
 void tempPrint()
 {
-	printf("flushing...\n");
-	auto v = flush();
-	char version[VERSION_CNT][8] = {"UNKN","1.1","1.0","HYBiD"};
-	for(int i=0;i<VERSION_CNT;i++)
-	{
-		printf("for HTTP%s\n\tsession num = %zu+%zu\n\tthp = %lf\n\tdura=%lf\n\tpayld=%lf\n\tpktcnt=%ld\n",
-				version[i],cnt[i],unfincnt[i],thp[i],dura[i],payld[i],pknum[i]);
-	}
-	printf("not found size = %ld, found size = %ld\n",
-			notfoundst.size(),st.size());
-	printf("finished size = %ld, unfinished size = %ld, half-closed = %ld\n",
-			finished.size(),unfinished.size(),v);
-	printf("total11 = %ld, total10 = %ld\n",total11,total10);
+    printf("flushing...\n");
+    auto v = flush();
+    char version[VERSION_CNT][8] = {"UNKN","1.1","1.0","HYBiD"};
+    for(int i=0;i<VERSION_CNT;i++)
+    {
+        printf("for HTTP%s\n\tsession num = %zu+%zu\n\tthp = %lf\n\tdura=%lf\n\tpayld=%lf\n\tpktcnt=%ld\n",
+                version[i],cnt[i],unfincnt[i],thp[i],dura[i],payld[i],pknum[i]);
+    }
+    printf("not found size = %ld, found size = %ld\n",
+            notfoundst.size(),st.size());
+    printf("finished size = %ld, unfinished size = %ld, half-closed = %ld\n",
+            finished.size(),unfinished.size(),v);
+    printf("total11 = %ld, total10 = %ld\n",total11,total10);
 }
 
 void getFinishedSessions(std::vector<Session> & v)
 {
-	v.clear();
-	v.reserve(finished.size());
-	for(auto & ent : finished)
-		v.push_back(ent.second);
+    v.clear();
+    v.reserve(finished.size());
+    for(auto & ent : finished)
+        v.push_back(ent.second);
 }
+
+size_t getSizeOfGivenType(const std::string &type)
+{
+    return size_map[type];
+}
+
