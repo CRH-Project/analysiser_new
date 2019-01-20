@@ -12,6 +12,7 @@
 
 std::vector<std::string> succCode{"200 OK","201 Created",
                 "206 Partial Content"};
+std::map<std::string,int> acceptType{{1,"text"},{2,"application"},{3,"image"}};
 class _Session : public Session
 {
 	public:
@@ -109,11 +110,12 @@ static HashMultiMap finished;
 
 void printToFile(_Session * session, void * arg)
 {
-	FILE * file = (FILE *) arg;
+	int tt = (int)arg;
+	FILE * file = fout;
 	if(!file || !session)
 		return;
 	if(session->getTimeGap() > 0) 
-		fprintf(file,"%lf\n",session->getTimeGap());
+		fprintf(file,"%lf,%s\n",session->getTimeGap(),acceptType[tt].c_str());
 }
 
 bool isRequest(const std::string & s, Packet *p)
@@ -131,9 +133,10 @@ bool isRespond(const std::string & s, Packet * p)
 	return false;
 }	
 
-bool isCorrectRespond(const std::string &s, Packet *p)
+int isCorrectRespond(const std::string &s, Packet *p)
 {
-     char buf[100];
+    char buf[100];
+    int retVal = 0;
     if(getField(buf,s.c_str(),"Content-Type: ")>=0)
     {
         std::string type{buf};
@@ -143,15 +146,19 @@ bool isCorrectRespond(const std::string &s, Packet *p)
         {
             return false;
         }
+	for(auto &ent : acceptType)
+	{
+	    if(type.find(ent.second)!=std::string::npos) retVal = ent.first;
+	}
     }
     for(auto ss : succCode)
     {
     	if(s.find(ss)!=std::string::npos)
         {
-	    	return true;
+	    	return retVal;
         }
     }
-     return false;
+    return false;
 }
 
 void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
@@ -242,7 +249,8 @@ void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * p
 		{
 			FILE * file = fout;
 			session.getResponse(p.timestp,printToFile,(void *)file);
-			if(isCorrectRespond(s,&p))
+			int tt;
+			if((tt=isCorrectRespond(s,&p)))
 			{
 				if(session.getTimeGap()<1e-3 && session.getTimeGap()>0)
 				{
@@ -250,7 +258,7 @@ void httpgap_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * p
 							session.printID().c_str(),
 							session.getObjCount());
 				}
-				session.getCorrectResponse(p.timestp,printToFile,(void*)file);
+				session.getCorrectResponse(p.timestp,printToFile,(void*)tt);
 			}
 		}
 	}
