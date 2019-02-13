@@ -131,7 +131,7 @@ void http_roller(u_char *user, const struct pcap_pkthdr * h, const u_char * pkt)
             int temp_pos = temp_type.find("/");
             if(temp_pos!=std::string::npos)
                 session.setType(temp_type.substr(0, temp_pos));
-            fprintf(stderr,"got type %s\n",session.getType().c_str());
+            //fprintf(stderr,"got type %s\n",session.getType().c_str());
         }
 #endif
 

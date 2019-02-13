@@ -124,6 +124,7 @@ std::string Session::printID()
 
 std::string Session::getType()
 {
+    if(this->type.length() == 0) return "Unknown";
     return this->type;
 }
 

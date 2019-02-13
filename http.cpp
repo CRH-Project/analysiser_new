@@ -16,7 +16,7 @@ using namespace std;
 
 void printHeader(ostream & o)
 {
-	o<<"Version,Duration,D-Payload Size,D-Throughput,D-Packet Count"<<
+	o<<"Version,type,Duration,D-Payload Size,D-Throughput,D-Packet Count,"<<
 		"U-PaylodSize,U-Throughput,U-Packet Count"<<endl;
 }
 
@@ -59,13 +59,14 @@ void printSession(ostream & o,Session & s)
 	auto dura = s.caculateDuration();
 
 	o<<version<<deli<<
+        s.getType()<<deli<<
 		dura<<deli<<
 		dn->getPayloadSize()<<deli<<
 		dn->getPayloadSize()/dura<<deli<<
 		dn->getPacketNumber()<<deli<<
 		up->getPayloadSize()<<deli<<
 		up->getPayloadSize()/dura<<deli<<
-		up->getPacketNumber()<<deli<<endl;	
+		up->getPacketNumber()<<deli<<endl;
 }
 
 
